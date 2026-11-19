@@ -85,7 +85,6 @@ footer a{color:var(--yellow)}
 <div id="loading">詞庫載入中……</div>
 <header><div class="in">
   <h1>🔄 <b>台語</b>翻譯系統</h1>
-  <p>輸入華語，同時產生「台語漢字」佮「台語羅馬字」。逐詞會使換講法、聽發音。</p>
 </div></header>
 
 <main>
@@ -147,7 +146,7 @@ footer a{color:var(--yellow)}
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var SAMPLES = ['我們一起去公園玩好不好？', '今天天氣很好，我想去海邊。', '媽媽在廚房煮飯，爸爸在看電視。', '你吃飽了嗎？', '這個多少錢？太貴了！', '我不知道他為什麼生氣。'];
+  var SAMPLES = ['我們一起去公園玩好不好？', '今天天氣很好，我想要去海邊。', '媽媽在廚房煮飯，爸爸在看電視。', '你吃飽了嗎？', '這個多少錢？太貴了！', '我不知道他為什麼生氣。'];
   var cur = null, mode = 'mark', useMemory = true;
 
   TaigiMT.init(window.TAIGI_DICT);
@@ -175,7 +174,7 @@ footer a{color:var(--yellow)}
   function render() {
     if (!cur) return;
     var han = cur.han, tl = cur.tl;
-    if (useMemory && cur.memory) { han = cur.memory[1]; tl = cur.memory[2]; }
+    if (useMemory && cur.memory) { han = cur.memory[1]; tl = cur.memory[2] || TaigiMT.romanize(han); }
     $('outHan').textContent = han;
     $('outTL').textContent = tlText(tl);
     $('memo').innerHTML = (cur.memory ? '<span class="badge" style="cursor:pointer" id="memoBtn" title="切換">' +
@@ -198,7 +197,7 @@ footer a{color:var(--yellow)}
     $('exCard').hidden = !ex.length;
     $('exs').innerHTML = ex.map(function (r) {
       var btn = r[3] ? '<button class="play" data-a="' + esc(r[3]) + '" title="聽教育部例句錄音" aria-label="播放例句">▶</button>' : '';
-      return '<li>' + btn + '<div class="tx"><div class="h">' + esc(r[1]) + '</div><div class="r">' + esc(tlText(r[2])) + '</div><div class="z">' + esc(r[0]) + '</div></div></li>';
+      return '<li>' + btn + '<div class="tx"><div class="h">' + esc(r[1]) + '</div><div class="r">' + esc(tlText(r[2] || TaigiMT.romanize(r[1]))) + '</div><div class="z">' + esc(r[0]) + '</div></div></li>';
     }).join('');
   }
 
@@ -210,7 +209,7 @@ footer a{color:var(--yellow)}
     var t = cur.tokens[i];
     menu = document.createElement('div'); menu.className = 'menu';
     menu.onclick = function (e) { e.stopPropagation(); };
-    var SRC = { c: '常用', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
+    var SRC = { c: '常用', p: '高中教材', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
     t.alts.forEach(function (a) {
       var o = document.createElement('div'); if (a.tg === t.tg) o.className = 'on';
       o.innerHTML = '<span>' + esc(a.tg) + '</span><small>' + (SRC[a.src] || '') + '</small>';
@@ -263,7 +262,7 @@ footer a{color:var(--yellow)}
   $('copyTL').onclick = function () { copy($('outTL').textContent, '已複製台語羅馬字'); };
   $('play').onclick = function () {
     var t = $('outTL').textContent; if (!t) { toast('猶未有結果'); return; }
-    if (window.holo) holo($('play'), useMemory && cur.memory ? cur.memory[2] : cur.tl); else toast('發音程式載入失敗');
+    if (window.holo) holo($('play'), useMemory && cur.memory ? (cur.memory[2] || TaigiMT.romanize(cur.memory[1])) : cur.tl); else toast('發音程式載入失敗');
   };
   $('ithuan').onclick = function () {
     var h = $('outHan').textContent.replace(/\s+/g, ''); if (!h) { toast('猶未有結果'); return; }
