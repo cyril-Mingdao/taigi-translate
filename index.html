@@ -97,6 +97,7 @@ footer a{color:var(--yellow)}
     <div class="row">
       <button class="main" id="go">翻譯 ▶</button>
       <button id="clear">清除</button>
+      <button id="tggl" title="到國家教育研究院《華台對照詞典》（盧廣誠編）查這段華語">🔍 查華台對照詞典</button>
       <span class="note">快速鍵：Enter 翻譯；Shift＋Enter 換行</span>
     </div>
     <div class="row" id="samples"></div>
@@ -207,6 +208,14 @@ footer a{color:var(--yellow)}
   var menu = null;
   function closeMenu() { if (menu) { menu.remove(); menu = null; } }
   document.addEventListener('click', closeMenu);
+  // 國家教育研究院《華台對照詞典》：版權屬編者盧廣誠，只連結到國教院網站查詢，不複製內容
+  function openTggl(text) {
+    text = (text || '').trim();
+    if (!text) { toast('請先輸入華語'); return; }
+    window.open('https://tggl.naer.edu.tw/chinese_taiwanese_words?type=word&text=' + encodeURIComponent(text), '_blank', 'noopener');
+  }
+  $('tggl').onclick = function () { openTggl($('src').value); };
+
   function openMenu(el, i) {
     closeMenu();
     var t = cur.tokens[i];
@@ -225,6 +234,12 @@ footer a{color:var(--yellow)}
     var p = document.createElement('div'); p.innerHTML = '<span>▶ 聽這个詞</span>';
     p.onclick = function () { window.holo && holo(p, t.tl); };
     menu.appendChild(p);
+    if (!t.raw) {
+      var q = document.createElement('div'); q.innerHTML = '<span>🔍 華台對照詞典查「' + esc(t.zh) + '」</span>';
+      q.title = '國家教育研究院《華台對照詞典》（盧廣誠編）';
+      q.onclick = function () { openTggl(t.zh); closeMenu(); };
+      menu.appendChild(q);
+    }
     document.body.appendChild(menu);
     var r = el.getBoundingClientRect();
     var left = Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - menu.offsetWidth - 8);
