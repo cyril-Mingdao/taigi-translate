@@ -9,7 +9,7 @@
  */
 (function (root) {
   'use strict';
-  var D = null, SENT = null, MAXK = 8;
+  var D = null, SENT = null, IT = null, ITR = {}, MAXK = 8;
   var BONUS = { c: 0.6, p: 0.55, e: 0.52, b: 0.5, s: 0.4, w: 0.3, g: 0.2, x: 0 };
   var HAN = /[㐀-鿿豈-﫿]|[\ud840-\ud87f][\udc00-\udfff]/;
   var PUNC = /[\s，。、！？；：「」『』（）()〔〕【】…—─,.!?;:"'~～\-]/g;
@@ -49,11 +49,13 @@
   function candidates(zh) {
     var list = (D.m[zh] || []).map(function (c) { return { tg: c[0], src: c[1] }; });
     if (!list.some(function (c) { return c.tg === zh; })) list.push({ tg: zh, src: 'w' });
+    // v10：iTaigi 愛台語（網友共筆）只附加在最後，永遠不當預設
+    (IT && IT[zh] || []).forEach(function (c) { if (!list.some(function (x) { return x.tg === c[0]; })) list.push({ tg: c[0], src: 'i' }); });
     return list;
   }
 
   // 台語漢字 → 臺羅（依辭典斷詞）
-  function romanize(han) {
+  function romanize(han, extra) {
     var parts = [], buf = '';
     chars(han).forEach(function (ch) {
       if (isHan(ch)) buf += ch;
@@ -67,7 +69,7 @@
       for (var i = 1; i <= n; i++) best[i] = -1e9;
       for (var i = 0; i < n; i++) {
         for (var L = Math.min(6, n - i); L >= 1; L--) {
-          var k = a.slice(i, i + L).join(''), rd = D.t[k];
+          var k = a.slice(i, i + L).join(''), rd = D.t[k] || (extra && extra[k]);
           var sc = best[i] + (rd ? L * L : -5);
           if (!rd && L > 1) continue;
           if (sc > best[i + L]) { best[i + L] = sc; back[i + L] = [i, k, rd || null]; }
@@ -163,8 +165,10 @@
 
   function finish(tokens, mem) {
     var han = tokens.map(function (t) { return t.tg; }).join('');
-    tokens.forEach(function (t) { t.tl = t.raw ? t.tg : joinTL(romanize(t.tg)); });
-    return { tokens: tokens, han: han, tl: joinTL(romanize(han)), memory: mem };
+    var extra = null;  // 選了 iTaigi 講法時，才用 iTaigi 的讀音（教育部查無的詞）
+    tokens.forEach(function (t) { if (t.src === 'i' && ITR[t.tg]) (extra = extra || {})[t.tg] = ITR[t.tg]; });
+    tokens.forEach(function (t) { t.tl = t.raw ? t.tg : joinTL(romanize(t.tg, extra)); });
+    return { tokens: tokens, han: han, tl: joinTL(romanize(han, extra)), memory: mem };
   }
 
   // 調符 → 數字調
@@ -200,6 +204,28 @@
     D.s = D.s.concat(list || []);
   }
 
-  root.TaigiMT = { init: init, addSentences: addSentences, translate: translate, finish: finish, romanize: function (h) { return joinTL(romanize(h)); },
+  // v10：iTaigi 愛台語華台對照典（itaigi.js，背景載入）
+  function addItaigi(map) {
+    IT = map || {};
+    Object.keys(IT).forEach(function (zh) { IT[zh].forEach(function (c) { if (c[1]) ITR[c[0]] = c[1]; }); });
+  }
+
+  // 原文裡跨詞的 iTaigi 詞組（≥2 字、不是剛好一個斷詞），最長優先、不重疊；只供參考顯示
+  function itaigiHints(text, tokens) {
+    if (!IT) return [];
+    var single = new Set((tokens || []).map(function (t) { return t.zh; }));
+    var a = chars(norm(text)), out = [], i = 0;
+    while (i < a.length) {
+      var hit = 0;
+      for (var L = Math.min(10, a.length - i); L >= 2; L--) {
+        var k = a.slice(i, i + L).join('');
+        if (IT[k] && !single.has(k)) { out.push([k, IT[k].slice(0, 3)]); hit = L; break; }
+      }
+      i += hit || 1;
+    }
+    return out.slice(0, 6);
+  }
+
+  root.TaigiMT = { init: init, addSentences: addSentences, addItaigi: addItaigi, itaigiHints: itaigiHints, translate: translate, finish: finish, romanize: function (h) { return joinTL(romanize(h)); },
     toNumeric: toNumeric, examples: examples, candidates: candidates };
 })(typeof window !== 'undefined' ? window : globalThis);

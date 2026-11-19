@@ -66,6 +66,9 @@ button:active{transform:translateY(1px)}
 .exs .h{font-size:18px;font-weight:600}
 .exs .r{font-family:"Charis SIL","Noto Serif",serif;color:var(--g1)}
 .exs .z{font-size:13px;color:var(--muted)}
+.ithint{margin-top:10px;font-size:14px;color:var(--g1);background:var(--g2,#F5F5F5);border-left:4px solid var(--yellow);padding:8px 10px;border-radius:6px}
+.ithint span{display:inline-block;margin:2px 10px 2px 0}
+.ithint i{font-style:normal;font-family:"Charis SIL","Noto Serif",serif;color:var(--muted)}
 .exs li{display:flex;gap:10px;align-items:flex-start}
 .exs .tx{flex:1;min-width:0}
 .exs .play{flex:none;background:var(--yellow);border:2px solid var(--black);border-radius:999px;width:40px;height:40px;padding:0;font-size:16px;line-height:1}
@@ -128,6 +131,7 @@ footer a{color:var(--yellow)}
   <section class="card">
     <h2><span class="tag">4</span>逐詞對照（點詞會使換講法）</h2>
     <div id="words"><span class="note">翻譯了後，逐个詞會排佇遮。</span></div>
+    <div id="itHint" class="ithint" hidden></div>
     <div class="legend" style="margin-top:10px"><span class="l1">辭典詞</span><span class="l2">已換講法</span><span class="l3">辭典查無、照原字</span></div>
   </section>
 
@@ -138,7 +142,7 @@ footer a{color:var(--yellow)}
 </main>
 
 <footer>
-  本系統翻譯詞庫依教育部《<a href="https://sutian.moe.edu.tw/" target="_blank" rel="noopener">臺灣台語常用詞辭典</a>》（CC BY-NC-ND 2.5 TW）、教育部〈<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/language_100/D/D005.pdf" target="_blank" rel="noopener">臺灣閩南語推薦用字700字表</a>〉（CC BY-NC-ND 2.5 TW）佮高中台語文教材的華台對照建立。<br>
+  本系統翻譯詞庫依教育部《<a href="https://sutian.moe.edu.tw/" target="_blank" rel="noopener">臺灣台語常用詞辭典</a>》（CC BY-NC-ND 2.5 TW）、教育部〈<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/language_100/D/D005.pdf" target="_blank" rel="noopener">臺灣閩南語推薦用字700字表</a>〉（CC BY-NC-ND 2.5 TW）佮高中台語文教材的華台對照建立；逐詞選單另附 <a href="https://itaigi.tw/" target="_blank" rel="noopener">iTaigi 愛台語</a>網友講法（CC0）做參考。<br>
   © 2026 詹宗龍（臺中明道中學）｜<a href="https://sites.google.com/ms.mingdao.edu.tw/tsiam" target="_blank" rel="noopener">宗龍的台語課</a>
 </footer>
 <div id="toast"></div>
@@ -164,6 +168,10 @@ footer a{color:var(--yellow)}
       if (cur && $('src').value.trim()) run();
     };
     document.body.appendChild(sc);
+    // v10：iTaigi 愛台語備選講法（只出現在逐詞選單最後）
+    var si = document.createElement('script'); si.src = 'itaigi.js'; si.async = true;
+    si.onload = function () { TaigiMT.addItaigi(window.TAIGI_IT); window.TAIGI_IT = null; if (cur && $('src').value.trim()) run(); };
+    document.body.appendChild(si);
   })();
 
   SAMPLES.forEach(function (s) {
@@ -204,6 +212,12 @@ footer a{color:var(--yellow)}
       d.onclick = function (ev) { ev.stopPropagation(); openMenu(d, i); };
       box.appendChild(d);
     });
+    // 愛台語網友講法參考：跨好幾個詞的詞組（觸控螢幕、知了…）只顯示、不改翻譯
+    var hints = TaigiMT.itaigiHints($('src').value, cur.tokens);
+    $('itHint').hidden = !hints.length;
+    $('itHint').innerHTML = hints.length ? '<b>愛台語網友講法參考</b>（未經教育部審訂，請斟酌）：' + hints.map(function (h) {
+      return '<span>' + esc(h[0]) + ' → ' + h[1].map(function (c) { return esc(c[0]) + (c[1] ? ' <i>' + esc(tlText(c[1])) + '</i>' : ''); }).join('／') + '</span>';
+    }).join('') : '';
     // 例句
     var words = cur.tokens.filter(function (t) { return !t.raw; }).map(function (t) { return t.tg; })
       .sort(function (a, b) { return Array.from(b).length - Array.from(a).length; });
@@ -231,7 +245,7 @@ footer a{color:var(--yellow)}
     var t = cur.tokens[i];
     menu = document.createElement('div'); menu.className = 'menu';
     menu.onclick = function (e) { e.stopPropagation(); };
-    var SRC = { c: '常用', p: '高中教材', e: '教育部推薦用字', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
+    var SRC = { c: '常用', p: '高中教材', e: '教育部推薦用字', i: '愛台語（網友）', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
     t.alts.forEach(function (a) {
       var o = document.createElement('div'); if (a.tg === t.tg) o.className = 'on';
       o.innerHTML = a.tg ? '<span>' + esc(a.tg) + '</span><small>' + (SRC[a.src] || '') + '</small>' : '<span>（拿掉這个字）</span><small>規則補的</small>';
@@ -272,7 +286,7 @@ footer a{color:var(--yellow)}
   }
 
   $('go').onclick = run;
-  $('clear').onclick = function () { $('src').value = ''; cur = null; $('outHan').textContent = ''; $('outTL').textContent = ''; $('memo').innerHTML = ''; $('words').innerHTML = ''; $('exCard').hidden = true; $('src').focus(); };
+  $('clear').onclick = function () { $('src').value = ''; cur = null; $('outHan').textContent = ''; $('outTL').textContent = ''; $('memo').innerHTML = ''; $('words').innerHTML = ''; $('itHint').hidden = true; $('exCard').hidden = true; $('src').focus(); };
   $('src').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); run(); } });
   // 教育部例句錄音（只連結教育部網站音檔，不轉存）
   var exAudio = new Audio(), exBtn = null;
