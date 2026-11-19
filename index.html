@@ -80,6 +80,9 @@ footer a{color:var(--yellow)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--black);color:var(--yellow);padding:8px 18px;border-radius:999px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
 #toast.show{opacity:1}
 </style>
+<!-- 臺羅字型：手機內建字型缺組合調符（a̍、n̂、o͘），改載 Charis SIL 只含臺羅用字的子集 -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Charis+SIL:wght@400;700&amp;display=swap&amp;text=%20%21%27%28%29%2C-./0123456789%3A%3B%3FABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz%C3%80%C3%81%C3%82%C3%8A%C3%8C%C3%8D%C3%8E%C3%92%C3%93%C3%94%C3%9A%C3%9B%C3%A0%C3%A1%C3%A2%C3%A8%C3%A9%C3%AA%C3%AC%C3%AD%C3%AE%C3%B2%C3%B3%C3%B4%C3%B9%C3%BA%C3%BB%C4%80%C4%81%C4%92%C4%93%C4%9B%C4%AA%C4%AB%C5%84%C5%88%C5%8C%C5%8D%C5%91%C5%AA%C5%AB%C5%B1%C7%8E%C7%90%C7%92%C7%94%C7%B8%C7%B9%CC%80%CC%81%CC%82%CC%84%CC%8B%CC%8C%CC%8D%CD%98%E1%B8%BF%E2%80%93%E2%80%95%E2%80%98%E2%80%99%E2%80%9C%E2%80%9D%E2%80%A6%E2%94%80">
 </head>
 <body>
 <div id="loading">詞庫載入中……</div>
@@ -133,7 +136,7 @@ footer a{color:var(--yellow)}
 </main>
 
 <footer>
-  本系統為自製翻譯，詞庫依教育部《<a href="https://sutian.moe.edu.tw/" target="_blank" rel="noopener">臺灣台語常用詞辭典</a>》（CC BY-NC-ND 2.5 TW）建立，機器翻譯袂百分百正確，請校對後使用。<br>
+  本系統為自製翻譯，詞庫依教育部《<a href="https://sutian.moe.edu.tw/" target="_blank" rel="noopener">臺灣台語常用詞辭典</a>》（CC BY-NC-ND 2.5 TW）、教育部〈<a href="https://language.moe.gov.tw/001/Upload/files/site_content/M0001/language_100/D/D005.pdf" target="_blank" rel="noopener">臺灣閩南語推薦用字700字表</a>〉（CC BY-NC-ND 2.5 TW）佮高中台語文教材的華台對照建立，機器翻譯袂百分百正確，請校對後使用。<br>
   © 2026 詹宗龍（臺中明道中學）｜<a href="https://sites.google.com/ms.mingdao.edu.tw/tsiam" target="_blank" rel="noopener">宗龍的台語課</a>
 </footer>
 <div id="toast"></div>
@@ -209,7 +212,7 @@ footer a{color:var(--yellow)}
     var t = cur.tokens[i];
     menu = document.createElement('div'); menu.className = 'menu';
     menu.onclick = function (e) { e.stopPropagation(); };
-    var SRC = { c: '常用', p: '高中教材', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
+    var SRC = { c: '常用', p: '高中教材', e: '教育部推薦用字', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
     t.alts.forEach(function (a) {
       var o = document.createElement('div'); if (a.tg === t.tg) o.className = 'on';
       o.innerHTML = '<span>' + esc(a.tg) + '</span><small>' + (SRC[a.src] || '') + '</small>';
