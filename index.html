@@ -234,7 +234,7 @@ footer a{color:var(--yellow)}
     var SRC = { c: '常用', p: '高中教材', e: '教育部推薦用字', b: '詞彙比較', s: '辭典例句', w: '同形', g: '辭典釋義', x: '原字' };
     t.alts.forEach(function (a) {
       var o = document.createElement('div'); if (a.tg === t.tg) o.className = 'on';
-      o.innerHTML = '<span>' + esc(a.tg) + '</span><small>' + (SRC[a.src] || '') + '</small>';
+      o.innerHTML = a.tg ? '<span>' + esc(a.tg) + '</span><small>' + (SRC[a.src] || '') + '</small>' : '<span>（拿掉這个字）</span><small>規則補的</small>';
       o.onclick = function () { setTok(i, a.tg, a.src); };
       menu.appendChild(o);
     });
@@ -244,7 +244,7 @@ footer a{color:var(--yellow)}
     var p = document.createElement('div'); p.innerHTML = '<span>▶ 聽這个詞</span>';
     p.onclick = function () { window.holo && holo(p, t.tl); };
     menu.appendChild(p);
-    if (!t.raw) {
+    if (!t.raw && t.zh) {
       var q = document.createElement('div'); q.innerHTML = '<span>🔍 華台對照詞典查「' + esc(t.zh) + '」</span>';
       q.title = '國家教育研究院《華台對照詞典》（盧廣誠編）';
       q.onclick = function () { openTggl(t.zh); closeMenu(); };

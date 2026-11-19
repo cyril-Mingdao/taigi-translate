@@ -97,6 +97,37 @@
     return s.replace(/\s+([,.!?;:])/g, '$1').replace(/\s+--/g, '--').replace(/\s+/g, ' ').trim();
   }
 
+  // v9 上下文規則
+  //  1. 名詞／動詞講法不同（D.nv：習慣→名詞「習慣」、動詞「慣勢」）
+  //  2. 華語「形容詞＋一點／一些」→ 台語「較＋形容詞＋一點仔」（睡晚一點→睏較晏一點仔）
+  var VERB_PREV = /^(我|你|妳|您|他|她|它|牠|我們|你們|妳們|他們|她們|咱們|大家|自己|誰|人|也|都|還|還是|很|非常|不|沒|沒有|別|會|要|想|能|可以|應該|已經|漸漸|慢慢|比較|更|最|常|常常|一直|一定|開始|正在|在|再|又|才|就|只|快|不太|太|不會|不要|不想)$/;
+  var NOUN_PREV = /^(的|這|那|這個|那個|這種|那種|個|種|好|壞|新|舊|一個|一種|些|有|沒有的|養成|改掉|改變|生活|飲食|老)$/;
+  var MORE = /^(一點|一點點|一些|點)$/;
+  function grammar(tokens) {
+    var ADJ = D.adj ? (D._adjSet || (D._adjSet = new Set(D.adj))) : null;
+    tokens.forEach(function (t, i) {
+      if (t.raw) return;
+      var nv = D.nv && D.nv[t.zh];
+      if (nv) {
+        var prev = tokens[i - 1], next = tokens[i + 1];
+        var pz = prev && !prev.raw ? prev.zh : '', nz = next && !next.raw ? next.zh : '';
+        var verb = NOUN_PREV.test(pz) ? false : (VERB_PREV.test(pz) || /^(了|過|著|就|得)$/.test(nz));
+        var want = verb ? nv[1] : nv[0], other = verb ? nv[0] : nv[1];
+        t.alts = [{ tg: want, src: 'c' }, { tg: other, src: 'c' }].concat(t.alts.filter(function (a) { return a.tg !== want && a.tg !== other; }));
+        t.tg = want; t.src = 'c';
+      }
+    });
+    if (!ADJ) return;
+    for (var i = tokens.length - 1; i > 0; i--) {
+      var t = tokens[i], p = tokens[i - 1], pp = tokens[i - 2];
+      if (t.raw || p.raw || !MORE.test(t.zh) || !ADJ.has(p.tg) || /^(差|有|一)$/.test(p.zh)) continue;  // 差一點＝幾乎
+      var nx = tokens[i + 1];  // 「醃一點鹽」：一點後面接名詞＝數量，不是比較
+      if (nx && !nx.raw && !/^(啦|吧|嘛|喔|哦|啊|呀|好|了|再|才|就|以後|之後|的話|嗎|呢|咧|較)$/.test(nx.zh)) continue;
+      if (pp && !pp.raw && /^(較|閣較|傷|足|真|誠|上)$/.test(pp.tg)) continue;
+      tokens.splice(i - 1, 0, { zh: '', tg: '較', src: 'c', alts: [{ tg: '較', src: 'c' }, { tg: '', src: 'c' }] });
+    }
+  }
+
   function translate(text) {
     text = (text || '').trim();
     if (!text) return { tokens: [], han: '', tl: '', memory: null };
@@ -126,6 +157,7 @@
         tokens.push({ zh: s.zh, tg: alts[pick].tg, src: alts[pick].src, alts: alts });
       });
     });
+    grammar(tokens);
     return finish(tokens, mem);
   }
 
