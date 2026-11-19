@@ -144,7 +144,7 @@ footer a{color:var(--yellow)}
 
 <script src="dict.js"></script>
 <script src="taigi-mt.js"></script>
-<script src="https://cyril-mingdao.github.io/taigi-class-games/assets/snd-plus.js"></script>
+<script src="https://cyril-mingdao.github.io/taigi-class-games/assets/snd-plus.js" async></script>
 <script>
 /*! 台語翻譯系統 介面 — © 2026 詹宗龍（臺中明道中學）保留一切權利。 */
 (function () {
@@ -155,6 +155,15 @@ footer a{color:var(--yellow)}
 
   TaigiMT.init(window.TAIGI_DICT);
   $('loading').remove();
+  // v7：教育部例句（約 1.7 萬句）另檔背景載入，畫面先能用；載好後補整句記憶與相關例句
+  (function () {
+    var sc = document.createElement('script'); sc.src = 'sent.js'; sc.async = true;
+    sc.onload = function () {
+      TaigiMT.addSentences(window.TAIGI_SENT); window.TAIGI_SENT = null;
+      if (cur && $('src').value.trim()) run();
+    };
+    document.body.appendChild(sc);
+  })();
 
   SAMPLES.forEach(function (s) {
     var b = document.createElement('button'); b.className = 'ex'; b.textContent = s;

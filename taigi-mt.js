@@ -9,7 +9,7 @@
  */
 (function (root) {
   'use strict';
-  var D = null, WSET = null, SENT = null, MAXK = 8;
+  var D = null, SENT = null, MAXK = 8;
   var BONUS = { c: 0.6, p: 0.55, e: 0.52, b: 0.5, s: 0.4, w: 0.3, g: 0.2, x: 0 };
   var HAN = /[㐀-鿿豈-﫿]|[\ud840-\ud87f][\udc00-\udfff]/;
   var PUNC = /[\s，。、！？；：「」『』（）()〔〕【】…—─,.!?;:"'~～\-]/g;
@@ -20,7 +20,6 @@
 
   function init(dict) {
     D = dict;
-    WSET = new Set(dict.w);
     SENT = new Map();
     dict.s.forEach(function (r) { SENT.set(norm(r[0]), r); });
   }
@@ -35,7 +34,7 @@
       for (var L = Math.min(MAXK, n - i); L >= 1; L--) {
         var k = a.slice(i, i + L).join(''), src = null;
         if (D.m[k]) src = D.m[k][0][1];
-        else if (WSET.has(k) || D.t[k]) src = 'w';
+        else if (D.t[k]) src = 'w';
         else if (L === 1) src = 'x';
         if (!src) continue;
         var sc = best[i] + L * L + BONUS[src];
@@ -163,6 +162,12 @@
     return out;
   }
 
-  root.TaigiMT = { init: init, translate: translate, finish: finish, romanize: function (h) { return joinTL(romanize(h)); },
+  // v7：教育部例句（sent.js）背景載入後補進來；主詞庫裡的教材／老師指定整句優先，不被蓋掉
+  function addSentences(list) {
+    (list || []).forEach(function (r) { var k = norm(r[0]); if (!SENT.has(k)) SENT.set(k, r); });
+    D.s = D.s.concat(list || []);
+  }
+
+  root.TaigiMT = { init: init, addSentences: addSentences, translate: translate, finish: finish, romanize: function (h) { return joinTL(romanize(h)); },
     toNumeric: toNumeric, examples: examples, candidates: candidates };
 })(typeof window !== 'undefined' ? window : globalThis);
