@@ -66,6 +66,10 @@ button:active{transform:translateY(1px)}
 .exs .h{font-size:18px;font-weight:600}
 .exs .r{font-family:"Charis SIL","Noto Serif",serif;color:var(--g1)}
 .exs .z{font-size:13px;color:var(--muted)}
+.exs li{display:flex;gap:10px;align-items:flex-start}
+.exs .tx{flex:1;min-width:0}
+.exs .play{flex:none;background:var(--yellow);border:2px solid var(--black);border-radius:999px;width:40px;height:40px;padding:0;font-size:16px;line-height:1}
+.exs .play.on{background:var(--black);color:var(--yellow)}
 .legend{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
 .legend span::before{content:"";display:inline-block;width:12px;height:12px;border:2px solid var(--black);border-radius:3px;margin-right:4px;vertical-align:-2px}
 .legend .l2::before{background:var(--yellow)}
@@ -91,7 +95,7 @@ footer a{color:var(--yellow)}
     <div class="row">
       <button class="main" id="go">翻譯 ▶</button>
       <button id="clear">清除</button>
-      <span class="note">快速鍵：Ctrl＋Enter</span>
+      <span class="note">快速鍵：Enter 翻譯；Shift＋Enter 換行</span>
     </div>
     <div class="row" id="samples"></div>
   </section>
@@ -193,7 +197,8 @@ footer a{color:var(--yellow)}
     var ex = TaigiMT.examples(words, 4);
     $('exCard').hidden = !ex.length;
     $('exs').innerHTML = ex.map(function (r) {
-      return '<li><div class="h">' + esc(r[1]) + '</div><div class="r">' + esc(tlText(r[2])) + '</div><div class="z">' + esc(r[0]) + '</div></li>';
+      var btn = r[3] ? '<button class="play" data-a="' + esc(r[3]) + '" title="聽教育部例句錄音" aria-label="播放例句">▶</button>' : '';
+      return '<li>' + btn + '<div class="tx"><div class="h">' + esc(r[1]) + '</div><div class="r">' + esc(tlText(r[2])) + '</div><div class="z">' + esc(r[0]) + '</div></div></li>';
     }).join('');
   }
 
@@ -241,7 +246,19 @@ footer a{color:var(--yellow)}
 
   $('go').onclick = run;
   $('clear').onclick = function () { $('src').value = ''; cur = null; $('outHan').textContent = ''; $('outTL').textContent = ''; $('memo').innerHTML = ''; $('words').innerHTML = ''; $('exCard').hidden = true; $('src').focus(); };
-  $('src').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); } });
+  $('src').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); run(); } });
+  // 教育部例句錄音（只連結教育部網站音檔，不轉存）
+  var exAudio = new Audio(), exBtn = null;
+  function exStop() { if (exBtn) { exBtn.classList.remove('on'); exBtn.textContent = '▶'; exBtn = null; } }
+  exAudio.onended = exStop; exAudio.onerror = function () { exStop(); toast('這句錄音暫時播袂出來'); };
+  $('exs').addEventListener('click', function (e) {
+    var b = e.target.closest('.play'); if (!b) return;
+    e.stopPropagation();
+    if (exBtn === b) { exAudio.pause(); exStop(); return; }
+    exStop(); exBtn = b; b.classList.add('on'); b.textContent = '■';
+    exAudio.src = 'https://sutian.moe.edu.tw/media/senn/mp3/imtong/leku/' + b.dataset.a + '.mp3';
+    exAudio.play().catch(function () { exStop(); });
+  });
   $('copyHan').onclick = function () { copy($('outHan').textContent, '已複製台語漢字'); };
   $('copyTL').onclick = function () { copy($('outTL').textContent, '已複製台語羅馬字'); };
   $('play').onclick = function () {
