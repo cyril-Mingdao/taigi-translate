@@ -10,7 +10,7 @@
 (function (root) {
   'use strict';
   var D = null, SENT = null, IT = null, ITR = {}, MAXK = 8;
-  var BONUS = { c: 0.6, p: 0.55, e: 0.52, b: 0.5, s: 0.4, w: 0.3, g: 0.2, x: 0 };
+  var BONUS = { c: 0.6, p: 0.55, e: 0.52, b: 0.5, s: 0.4, w: 0.3, f: 0.25, g: 0.2, x: 0 };
   var HAN = /[㐀-鿿豈-﫿]|[\ud840-\ud87f][\udc00-\udfff]/;
   var PUNC = /[\s，。、！？；：「」『』（）()〔〕【】…—─,.!?;:"'~～\-]/g;
 
