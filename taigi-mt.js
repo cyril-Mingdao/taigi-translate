@@ -18,8 +18,27 @@
   function isHan(ch) { return HAN.test(ch); }
   function norm(s) { return (s || '').replace(PUNC, ''); }
 
+  // v15：詞庫以純文字壓縮傳送（build_dict.py），這裡還原成物件
+  function unpack(dict) {
+    if (typeof dict.m === 'string') {
+      var m = {};
+      dict.m.split('\n').forEach(function (line) {
+        var i = line.indexOf('\t');
+        m[line.slice(0, i)] = line.slice(i + 1).split('|').map(function (c) { return [c.slice(0, -1), c.slice(-1)]; });
+      });
+      dict.m = m;
+    }
+    if (typeof dict.t === 'string') {
+      var t = {};
+      dict.t.split('\n').forEach(function (line) { var i = line.indexOf('\t'); t[line.slice(0, i)] = line.slice(i + 1); });
+      (dict.td ? dict.td.split(',') : []).forEach(function (h) { t[h] = chars(h).map(function (c) { return t[c]; }).join('-'); });
+      dict.t = t; delete dict.td;
+    }
+    return dict;
+  }
+
   function init(dict) {
-    D = dict;
+    D = unpack(dict);
     SENT = new Map();
     dict.s.forEach(function (r) { SENT.set(norm(r[0]), r); });
   }
