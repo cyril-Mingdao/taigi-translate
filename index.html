@@ -5,6 +5,7 @@
   作者：詹宗龍｜宗龍的台語課 https://sites.google.com/ms.mingdao.edu.tw/tsiam
   授權來源：辭典資料、例句與發音錄音取自教育部《臺灣台語常用詞辭典》（https://sutian.moe.edu.tw/，CC BY-NC-ND 2.5 TW），著作權屬教育部。
   翻譯引擎 taigi-mt.js 與核心詞表為獨立自製，不含第三方翻譯程式或詞庫。
+  罕用漢字（如「𪜶」）補字字型：豆腐烏 Tauhu Oo 20.05 子集（https://tauhu.tw/ ，SIL Open Font License 1.1，見 fonts/OFL.txt）。
 -->
 <html lang="zh-Hant-TW">
 <head>
@@ -19,7 +20,7 @@
 :root{--black:#111111;--yellow:#FFD400;--white:#FFFFFF;--g1:#2A2A2A;--g2:#F5F5F5;--muted:#666;--ok:#1a8f3c;--ng:#c62828}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--g2);color:var(--black)}
-body{font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.6;min-height:100vh}
+body{font-family:"TaigiRare","Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;line-height:1.6;min-height:100vh}
 header{background:var(--black);color:var(--white);padding:14px 16px;border-bottom:5px solid var(--yellow)}
 /* v17：滿版——左右不留白邊，依螢幕寬度自動適配 */
 header{padding:14px clamp(12px,1.6vw,28px)}
@@ -99,6 +100,7 @@ footer a{color:var(--yellow)}
 #toast.show{opacity:1}
 </style>
 <!-- 臺羅字型：手機內建字型缺組合調符（a̍、n̂、o͘），改載 Charis SIL 只含臺羅用字的子集 -->
+<link rel="stylesheet" href="fonts/tauhu.css">
 <link rel="preload" href="dict.js" as="script">
 <link rel="preload" href="taigi-mt.js" as="script">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
