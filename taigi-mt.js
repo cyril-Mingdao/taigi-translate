@@ -149,6 +149,9 @@
     }
   }
 
+  // 不套正反問句規則：是不是（教育部用「是毋是」，由詞表處理）、動不動、好死不死…
+  var QSKIP = /^(是|動|死|得|管|理|三|二)$/;
+
   function translate(text) {
     text = (text || '').trim();
     if (!text) return { tokens: [], han: '', tl: '', memory: null };
@@ -169,14 +172,31 @@
         } else tokens.push({ zh: r[0], tg: r[0], raw: true, alts: [] });
         return;
       }
+      // v22 正反問句：問句裡的「A不A／A沒A」→「A…無？」（教育部例句慣例：有入選無、欲鬥陣來去無、好無）
+      var after = runs.slice(ri + 1).map(function (x) { return x[0]; }).join('');
+      var isQ = /^\s*[？?]/.test(after) || !chars(after).some(isHan) &&!/[。！!.，,；;]/.test(after);
+      var qm = isQ && r[0].match(/([㐀-鿿]{1,2})([不沒])\1/);
+      if (qm && QSKIP.test(qm[1])) qm = null;
+      var tail = null;
+      if (qm) {
+        r = [r[0].slice(0, qm.index) + qm[1] + r[0].slice(qm.index + qm[0].length), 1];
+        var neg = /^會/.test(qm[1]) ? '袂' : '無';
+        tail = { zh: qm[2] + qm[1], tg: neg, src: 'c', q: true, alts: [{ tg: neg, src: 'c' }, { tg: neg === '無' ? '袂' : '無', src: 'c' }] };
+      } else if (isQ && /.了嗎$/.test(r[0])) {  // 吃飽了嗎→食飽未、寫完了嗎→寫了未
+        r = [r[0].slice(0, -2), 1];
+        tail = { zh: '了嗎', tg: '未', src: 'c', q: true, alts: [{ tg: '未', src: 'c' }, { tg: '矣無', src: 'c' }] };
+      }
       var segs = segment(r[0]);
       segs.forEach(function (s, si) {
         var alts = candidates(s.zh), pick = 0,
           endOfRun = segs.slice(si + 1).every(function (x) { return /^[嗎呢吧啊呀喔啦哦]$/.test(x.zh); });
         if (s.zh === '了') { alts = endOfRun ? [{ tg: '矣', src: 'c' }, { tg: '了', src: 'w' }] : [{ tg: '了', src: 'w' }, { tg: '矣', src: 'c' }]; }
         if (s.zh === '嗎' && !endOfRun) { alts = [{ tg: '嗎', src: 'w' }, { tg: '無', src: 'c' }]; }
+        if (s.zh === '嗎' && endOfRun && alts[0].tg === '無') { tokens.push({ zh: s.zh, tg: '無', src: alts[0].src, q: true, alts: alts }); return; }  // 好嗎→好無 hó--bô
+        if (tail && s.zh === '對' && si === segs.length - 1) { alts = [{ tg: '著', src: 'c' }].concat(alts.filter(function (a) { return a.tg !== '著'; })); }  // 對不對→著無
         tokens.push({ zh: s.zh, tg: alts[pick].tg, src: alts[pick].src, alts: alts });
       });
+      if (tail) tokens.push(tail);
     });
     grammar(tokens);
     return finish(tokens, mem);
@@ -187,7 +207,18 @@
     var extra = null;  // 選了 iTaigi 講法時，才用 iTaigi 的讀音（教育部查無的詞）
     tokens.forEach(function (t) { if (t.src === 'i' && ITR[t.tg]) (extra = extra || {})[t.tg] = ITR[t.tg]; });
     tokens.forEach(function (t) { t.tl = t.raw ? t.tg : joinTL(romanize(t.tg, extra)); });
-    return { tokens: tokens, han: han, tl: joinTL(romanize(han, extra)), memory: mem };
+    // v22 正反問句句尾「無／袂」讀輕聲：hó--bô、ē--bē（整句分段羅馬字化，句尾接 --）
+    var segs = [], part = '';
+    tokens.forEach(function (t) {
+      var neu = t.q && { '無': 'bô', '袂': 'bē', '未': 'bē' }[t.tg];
+      if (neu) {
+        segs = segs.concat(romanize(part, extra)); part = '';
+        segs.push({ tl: '--' + neu });
+        t.tl = '--' + neu;
+      } else part += t.tg;
+    });
+    segs = segs.concat(romanize(part, extra));
+    return { tokens: tokens, han: han, tl: joinTL(segs), memory: mem };
   }
 
   // 調符 → 數字調
