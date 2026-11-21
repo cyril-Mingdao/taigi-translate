@@ -140,9 +140,10 @@ footer a{color:var(--yellow)}
       <div class="row">
         <button class="dark" id="copyTL">📋 複製羅馬字</button>
         <button id="play">▶ 聽發音</button>
+        <span class="toggle" id="speed" title="發音速度"><button data-r="1">慢</button><button data-r="1.2" class="on">正常</button><button data-r="1.45">快</button></span>
         <span class="toggle" id="tmode"><button class="on" data-m="mark">調符</button><button data-m="num">數字調</button></span>
       </div>
-      <p class="note">羅馬字採教育部《臺灣台語羅馬字拼音方案》，標本調（無標變調）。發音用教育部辭典錄音接音。</p>
+      <p class="note">羅馬字採教育部《臺灣台語羅馬字拼音方案》，標本調（無標變調）。發音用教育部辭典錄音接音（整段先載好才播，標點處自動停頓）。</p>
     </section>
   </div>
 
@@ -337,15 +338,89 @@ footer a{color:var(--yellow)}
     var b = e.target.closest('.play'); if (!b) return;
     e.stopPropagation();
     if (exBtn === b) { exAudio.pause(); exStop(); return; }
+    if (sp.on) spStop();
     exStop(); exBtn = b; b.classList.add('on'); b.textContent = '■';
     exAudio.src = 'https://sutian.moe.edu.tw/media/senn/mp3/imtong/leku/' + b.dataset.a + '.mp3';
     exAudio.play().catch(function () { exStop(); });
   });
   $('copyHan').onclick = function () { copy($('outHan').textContent, '已複製台語漢字'); };
   $('copyTL').onclick = function () { copy($('outTL').textContent, '已複製台語羅馬字'); };
+  // v23：整段先全部載入，到齊後無縫接播（每個音檔各用一個 <audio>，前一個快結束就起下一個）；標點處停頓
+  var sp = { on: false, els: [], seq: [], i: 0, timer: 0, rate: 1.2 };
+  try { var sr = localStorage.getItem('tt-speed'); if (sr) sp.rate = +sr || 1.2; } catch (e) {}
+  Array.prototype.forEach.call($('speed').children, function (x) { x.classList.toggle('on', +x.dataset.r === sp.rate); });
+  $('speed').onclick = function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    sp.rate = +b.dataset.r;
+    try { localStorage.setItem('tt-speed', b.dataset.r); } catch (e2) {}
+    Array.prototype.forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); });
+    sp.els.forEach(function (a) { setRate(a); });
+  };
+  function setRate(a) { a.playbackRate = sp.rate; a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = true; }
+  function spBtn(t) { $('play').textContent = t; }
+  function spStop() {
+    sp.on = false; clearTimeout(sp.timer);
+    sp.els.forEach(function (a) { try { a.onplaying = a.onended = a.onerror = null; a.pause(); } catch (e) {} });
+    sp.els = []; spBtn('▶ 聽發音');
+  }
+  function spBuild(text) {
+    // 依標點切段：逗號類停 0.22 秒、句號類停 0.45 秒
+    var seq = [], re = /([^，。！？、；：,.!?;:…\n]+)([，。！？、；：,.!?;:…\n]*)/g, m;
+    while ((m = re.exec(text))) {
+      var urls = MdSnd.resolve(m[1]);
+      urls.forEach(function (u) { seq.push({ u: u }); });
+      if (urls.length && m[2]) seq.push({ p: /[。！？.!?\n]/.test(m[2]) ? 450 : 220 });
+    }
+    while (seq.length && seq[seq.length - 1].p) seq.pop();
+    return seq;
+  }
+  function spNext() {
+    if (!sp.on) return;
+    clearTimeout(sp.timer);
+    var it = sp.seq[sp.i++];
+    if (!it) { spStop(); return; }
+    if (it.p) { sp.timer = setTimeout(spNext, it.p / sp.rate); return; }
+    var a = it.a, done = false;
+    function go() { if (done) return; done = true; a.onended = a.onerror = a.onplaying = null; spNext(); }
+    a.onended = go; a.onerror = go;
+    a.onplaying = function () {   // 提早 0.05 秒起下一個，消除換檔空隙
+      var left = ((a.duration || 0) - a.currentTime) / sp.rate - 0.05;
+      if (left > 0 && isFinite(left)) sp.timer = setTimeout(go, left * 1000);
+    };
+    setRate(a); a._live = true; a.muted = false;
+    try { a.currentTime = 0; } catch (e) {}
+    var pr = a.play();
+    if (pr && pr.catch) pr.catch(function (e) {
+      if (e && e.name === 'NotAllowedError') { spStop(); if (window.holo) holo($('play'), sp.text); }   // 瀏覽器不准：退回舊播放法
+      else go();
+    });
+  }
   $('play').onclick = function () {
     var t = $('outTL').textContent; if (!t) { toast('猶未有結果'); return; }
-    if (window.holo) holo($('play'), useMemory && cur.memory ? (cur.memory[2] || TaigiMT.romanize(cur.memory[1])) : cur.tl); else toast('發音程式載入失敗');
+    if (!window.MdSnd) { toast('發音程式載入失敗'); return; }
+    if (sp.on) { spStop(); return; }
+    exAudio.pause(); exStop();
+    var text = useMemory && cur.memory ? (cur.memory[2] || TaigiMT.romanize(cur.memory[1])) : cur.tl;
+    var seq = spBuild(text);
+    if (!seq.length) { toast('這段揣無發音'); return; }
+    sp.on = true; sp.seq = seq; sp.i = 0; sp.text = text; sp.els = [];
+    var cache = {}, total = 0, ready = 0, started = false;
+    function start() { if (started || !sp.on) return; started = true; clearTimeout(sp.timer); spBtn('■ 停止'); spNext(); }
+    seq.forEach(function (it) {
+      if (!it.u) return;
+      // 同一個音檔在句中重複出現時各用各的 <audio>，避免提早接播時互搶
+      var a = new Audio(); a.preload = 'auto'; a.src = it.u; it.a = a; sp.els.push(a); total++;
+      var f = function () { a.removeEventListener('canplaythrough', f); a.removeEventListener('error', f); ready++; spBtn('⏳ 載入 ' + ready + '/' + total); if (ready >= total) start(); };
+      a.addEventListener('canplaythrough', f); a.addEventListener('error', f);
+      // 手機（iOS）：在點擊當下靜音試播一次解鎖每個 <audio>
+      a.muted = true;
+      var pr = a.play();
+      if (pr && pr.then) pr.then(function () { if (!a._live) { a.pause(); a.currentTime = 0; } a.muted = false; }, function () { a.muted = false; });
+      else { a.pause(); a.muted = false; }
+      cache[it.u] = 1;
+    });
+    spBtn('⏳ 載入 0/' + total);
+    sp.timer = setTimeout(start, 8000);   // 最多等 8 秒，網路慢就先播
   };
   $('ithuan').onclick = function () {
     var h = $('outHan').textContent.replace(/\s+/g, ''); if (!h) { toast('猶未有結果'); return; }
