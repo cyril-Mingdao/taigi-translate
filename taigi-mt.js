@@ -303,14 +303,25 @@
   }
 
   // 例句查詢：華語或台語含關鍵詞的辭典例句
-  function examples(words, limit) {
-    var out = [], seen = new Set();
-    for (var i = 0; i < D.s.length && out.length < (limit || 5); i++) {
+  //   v26：minAudio＝至少幾句要有教育部錄音（r[3]）；前 limit 句不夠時，用後面有錄音的句子換掉沒錄音的
+  function examples(words, limit, minAudio) {
+    limit = limit || 5; minAudio = Math.min(minAudio || 0, limit);
+    var out = [], seen = new Set(), na = 0, extra = [];
+    for (var i = 0; i < D.s.length; i++) {
+      if (out.length >= limit && (na >= minAudio || extra.length >= minAudio - na)) break;
       var r = D.s[i];
       for (var j = 0; j < words.length; j++) {
         var w = words[j];
-        if (w && chars(w).length >= 2 && (r[1].indexOf(w) >= 0) && !seen.has(r[1])) { out.push(r); seen.add(r[1]); break; }
+        if (w && chars(w).length >= 2 && (r[1].indexOf(w) >= 0) && !seen.has(r[1])) {
+          seen.add(r[1]);
+          if (out.length < limit) { out.push(r); if (r[3]) na++; }
+          else if (r[3]) extra.push(r);
+          break;
+        }
       }
+    }
+    for (var k = out.length - 1; k >= 0 && na < minAudio && extra.length; k--) {
+      if (!out[k][3]) { out[k] = extra.shift(); na++; }
     }
     return out;
   }
