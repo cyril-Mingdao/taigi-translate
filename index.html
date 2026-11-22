@@ -39,10 +39,10 @@ textarea:focus{outline:3px solid var(--yellow);outline-offset:1px}
 button{font-family:inherit;font-size:16px;border:2px solid var(--black);border-radius:10px;padding:8px 16px;cursor:pointer;background:var(--white);color:var(--black);font-weight:600}
 button.main{background:var(--yellow);font-size:19px;padding:10px 26px}
 button.dark{background:var(--black);color:var(--yellow)}
-.itbtn{display:inline-flex;align-items:center;gap:2px;font-size:16px;font-weight:600;border:2px solid var(--black);border-radius:10px;padding:5px 10px;background:var(--white);white-space:nowrap}
-#ithuan .k-l,#ithuan .k-d{display:inline-block;border-radius:6px;padding:2px 10px;margin:0 2px;font-size:16px;font-weight:700;line-height:1.4;text-decoration:none;cursor:pointer;min-width:2.6em;text-align:center}
-#ithuan .k-l{background:var(--black);color:var(--yellow);border:1px solid var(--black)}
-#ithuan .k-d{background:var(--yellow);color:var(--black);border:1px solid var(--black)}
+/* v28：意傳「聽語音」「下載」分成兩個鈕 */
+button.it-play{background:var(--black);color:var(--yellow)}
+.it-dl{display:inline-flex;align-items:center;justify-content:center;width:46px;height:42px;border:2px solid var(--black);border-radius:10px;background:var(--yellow);color:var(--black);text-decoration:none}
+.it-dl:hover{filter:brightness(.95)}
 button:hover{filter:brightness(.95)}
 button:active{transform:translateY(1px)}
 .ex{font-size:14px;padding:4px 10px;border-radius:999px;border-width:1px;font-weight:400}
@@ -135,8 +135,10 @@ footer a{color:var(--yellow)}
       <div class="out" id="outHan" data-ph="翻譯結果會出現佇遮"></div>
       <div class="row">
         <button class="dark" id="copyHan">📋 複製台語漢字</button>
-        <span class="itbtn" id="ithuan" title="用意傳科技「媠聲」合成整句語音，直接在本頁聽或下載 MP3">🔊 <button type="button" class="k-l" id="itPlay">聽</button>／<a class="k-d" id="itDl" href="#" rel="noopener">下載</a>語音（意傳）</span>
+        <button type="button" class="it-play" id="itPlay" title="用意傳科技「媠聲」合成整句語音，在本頁播放">🔊 聽語音</button>
+        <a class="it-dl" id="itDl" href="#" rel="noopener" title="下載語音 MP3（意傳）" aria-label="下載語音 MP3（意傳）"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v11m0 0-4.5-4.5M12 14l4.5-4.5M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
+      <p class="note">備註：語音來源為意傳免費的展示服務，每分鐘最多合成 3 句。超過時會跳出「請小等一下才閣試」的提示，等一分鐘再按就好。同一句重複按「聽語音」不會再算一次。</p>
     </section>
     <section class="card">
       <h2><span class="tag">3</span>台語羅馬字</h2>
@@ -436,7 +438,7 @@ footer a{color:var(--yellow)}
     t = (t || '').replace(/\s+/g, ' ').trim();
     return t ? 'https://hapsing.ithuan.tw/bangtsam?taibun=' + encodeURIComponent(t) : '';
   }
-  function itStop() { if (it.a) it.a.pause(); $('itPlay').textContent = '聽'; }
+  function itStop() { if (it.a) it.a.pause(); $('itPlay').textContent = '🔊 聽語音'; }
   $('itPlay').onclick = function () {
     var u = itUrl(); if (!u) { toast('猶未有結果'); return; }
     if (it.a && !it.a.paused) { itStop(); return; }
@@ -446,8 +448,8 @@ footer a{color:var(--yellow)}
       it.a.onended = itStop;
       it.a.onerror = function () { itStop(); it.a = null; toast('意傳語音暫時提袂著（每分鐘限 3 句），請小等一下才閣試'); };
     }
-    $('itPlay').textContent = '⏳';
-    it.a.onplaying = function () { $('itPlay').textContent = '■'; };
+    $('itPlay').textContent = '⏳ 載入中';
+    it.a.onplaying = function () { $('itPlay').textContent = '■ 停止'; };
     try { it.a.currentTime = 0; } catch (e) {}
     var pr = it.a.play(); if (pr && pr.catch) pr.catch(function () { itStop(); });
   };
